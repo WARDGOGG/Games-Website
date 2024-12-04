@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catch the Ball Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #282c34;
+            color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        canvas {
+            display: block;
+        }
+
+        #score {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 20px;
+        }
+
+        #achievement {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            text-align: center;
+            display: none;
+            animation: fadeOut 2s forwards;
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="achievement"></div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const achievementElement = document.getElementById('achievement');
+
+        // Adjust canvas to fit the entire window
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        let score = 0;
+        let ball = {
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            radius: 20, // Ball's size remains constant
+            color: 'red',
+            speedX: 3,
+            speedY: 3,
+            maxSpeed: 5, // Maximum speed limit
+            hitRadius: 50  // Extra hit area around the ball
+        };
+
+        const achievements = [
+            { score: 5, message: "Great Start! 5 Points!" },
+            { score: 10, message: "Double Digits! 10 Points!" },
+            { score: 20, message: "Amazing! 20 Points!" },
+            { score: 50, message: "Unstoppable! 50 Points!" },
+            { score: 100, message: "Legendary! 100 Points!" },
+            { score: 150, message: "ABSOLUTE GAMER! 150 Points!" },
+            { score: 200, message: "ARE YOU CRAZY? 200 Points!" }
+        ];
+
+        let unlockedAchievements = new Set();
+
+        function showAchievement(message) {
+            achievementElement.textContent = message;
+            achievementElement.style.display = 'block';
+
+            setTimeout(() => {
+                achievementElement.style.display = 'none';
+            }, 2000);
+        }
+
+        function checkAchievements() {
+            for (const achievement of achievements) {
+                if (score >= achievement.score && !unlockedAchievements.has(achievement.score)) {
+                    unlockedAchievements.add(achievement.score);
+                    showAchievement(achievement.message);
+                }
+            }
+        }
+
+        function drawBall() {
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fillStyle = ball.color;
+            ctx.fill();
+            ctx.closePath();
+        }
+
+        function updateBallPosition() {
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+
+            // Bounce off the walls
+            if (ball.x < ball.radius || ball.x > canvas.width - ball.radius) {
+                ball.speedX *= -1;
+            }
+            if (ball.y < ball.radius || ball.y > canvas.height - ball.radius) {
+                ball.speedY *= -1;
+            }
+        }
+
+        function limitSpeed() {
+            ball.speedX = Math.min(Math.max(ball.speedX, -ball.maxSpeed), ball.maxSpeed);
+            ball.speedY = Math.min(Math.max(ball.speedY, -ball.maxSpeed), ball.maxSpeed);
+        }
+
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = e.clientX - rect.left;
+            const mouseY = e.clientY - rect.top;
+
+            const dist = Math.sqrt(
+                (mouseX - ball.x) ** 2 + (mouseY - ball.y) ** 2
+            );
+
+            if (dist <= ball.radius + ball.hitRadius) { // Increased hit radius
+                score++;
+                scoreElement.textContent = `Score: ${score}`;
+
+                const speedIncrease = 0.5;
+                ball.speedX += ball.speedX > 0 ? speedIncrease : -speedIncrease;
+                ball.speedY += ball.speedY > 0 ? speedIncrease : -speedIncrease;
+
+                // Limit speed
+                limitSpeed();
+
+                ball.x = Math.random() * canvas.width;
+                ball.y = Math.random() * canvas.height;
+
+                checkAchievements();
+            }
+        });
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawBall();
+            updateBallPosition();
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+    </script>
+</body>
+</html>

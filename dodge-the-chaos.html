@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodge the Chaos</title>
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            background: #222;
+            display: block;
+        }
+
+        #timer {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: Arial, sans-serif;
+            font-size: 24px;
+            color: white;
+        }
+
+        #deathScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+        }
+
+        #deathScreen h1 {
+            font-family: Arial, sans-serif;
+            font-size: 48px;
+            color: white;
+            opacity: 0;
+            animation: fadeInOut 2s ease-in-out infinite;
+        }
+
+        @keyframes fadeInOut {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div id="timer">Time: 0</div>
+    <div id="deathScreen">
+        <h1>Game Over</h1>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const deathScreen = document.getElementById('deathScreen');
+
+        // Full window size for canvas
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        // Game state
+        const player = { x: canvas.width / 2, y: canvas.height / 2, size: 20, speed: 5 };
+        let chaosObjects = [];
+        let isGameOver = false;
+        let timeSurvived = 0;
+
+        // Utility function: Random number generator
+        function random(min, max) {
+            return Math.random() * (max - min) + min;
+        }
+
+        // Spawn chaos objects
+        function spawnChaos(count) {
+            for (let i = 0; i < count; i++) {
+                chaosObjects.push({
+                    x: random(0, canvas.width),
+                    y: random(0, canvas.height),
+                    size: 15,
+                    speedX: random(-4, 4),
+                    speedY: random(-4, 4),
+                });
+            }
+        }
+
+        // Update chaos objects
+        function updateChaos() {
+            chaosObjects.forEach(obj => {
+                obj.x += obj.speedX;
+                obj.y += obj.speedY;
+
+                // Bounce off walls
+                if (obj.x <= 0 || obj.x + obj.size >= canvas.width) obj.speedX *= -1;
+                if (obj.y <= 0 || obj.y + obj.size >= canvas.height) obj.speedY *= -1;
+
+                // Accelerate chaos for more chaos!
+                obj.speedX += random(-0.1, 0.1);
+                obj.speedY += random(-0.1, 0.1);
+            });
+        }
+
+        // Handle collisions
+        function checkCollision(a, b) {
+            return (
+                a.x < b.x + b.size &&
+                a.x + a.size > b.x &&
+                a.y < b.y + b.size &&
+                a.y + a.size > b.y
+            );
+        }
+
+        // Check for game over
+        function checkGameOver() {
+            chaosObjects.forEach(obj => {
+                if (checkCollision(player, obj)) {
+                    isGameOver = true;
+                    triggerDeathAnimation();
+                }
+            });
+        }
+
+        // Trigger death animation
+        function triggerDeathAnimation() {
+            deathScreen.style.display = 'flex';
+            setTimeout(() => {
+                document.location.reload();
+            }, 3000); // Reload after 3 seconds
+        }
+
+        // Update player position
+        let inputX = 0;
+        let inputY = 0;
+        function updatePlayer() {
+            player.x += inputX * player.speed;
+            player.y += inputY * player.speed;
+
+            // Boundaries
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.size > canvas.width) player.x = canvas.width - player.size;
+            if (player.y < 0) player.y = 0;
+            if (player.y + player.size > canvas.height) player.y = canvas.height - player.size;
+        }
+
+        // Draw player
+        function drawPlayer() {
+            ctx.fillStyle = 'white';
+            ctx.fillRect(player.x, player.y, player.size, player.size);
+        }
+
+        // Draw chaos objects
+        function drawChaos() {
+            ctx.fillStyle = 'red';
+            chaosObjects.forEach(obj => {
+                ctx.fillRect(obj.x, obj.y, obj.size, obj.size);
+            });
+        }
+
+        // Game loop
+        let lastTime = 0;
+        function gameLoop(timestamp) {
+            if (isGameOver) return;
+
+            const deltaTime = (timestamp - lastTime) / 1000;
+            lastTime = timestamp;
+
+            timeSurvived += deltaTime;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Update
+            updatePlayer();
+            updateChaos();
+            checkGameOver();
+
+            // Draw
+            drawPlayer();
+            drawChaos();
+
+            // Update timer
+            document.getElementById('timer').innerText = `Time: ${timeSurvived.toFixed(1)}`;
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Input handling for PC
+        window.addEventListener('keydown', e => {
+            if (e.key === 'ArrowUp') inputY = -1;
+            if (e.key === 'ArrowDown') inputY = 1;
+            if (e.key === 'ArrowLeft') inputX = -1;
+            if (e.key === 'ArrowRight') inputX = 1;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (['ArrowUp', 'ArrowDown'].includes(e.key)) inputY = 0;
+            if (['ArrowLeft', 'ArrowRight'].includes(e.key)) inputX = 0;
+        });
+
+        // Touch controls for mobile
+        let touchStartX = 0, touchStartY = 0;
+        canvas.addEventListener('touchstart', e => {
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+        });
+
+        canvas.addEventListener('touchmove', e => {
+            const touch = e.touches[0];
+            const dx = touch.clientX - touchStartX;
+            const dy = touch.clientY - touchStartY;
+
+            inputX = dx > 10 ? 1 : dx < -10 ? -1 : 0;
+            inputY = dy > 10 ? 1 : dy < -10 ? -1 : 0;
+        });
+
+        canvas.addEventListener('touchend', () => {
+            inputX = 0;
+            inputY = 0;
+        });
+
+        // Start game
+        spawnChaos(10);
+        setInterval(() => {
+            if (!isGameOver) spawnChaos(5); // Add more chaos every 5 seconds
+        }, 5000);
+        gameLoop(0);
+    </script>
+</body>
+</html>

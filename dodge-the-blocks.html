@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dodge the Blocks</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #1a1a1a;
+            color: rgb(34, 255, 0);
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            flex-direction: column;
+        }
+        canvas {
+            border: 2px solid white;
+        }
+        #restartButton {
+            background: #444;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+            margin-top: 20px;
+            display: none; /* Hidden initially */
+        }
+        #restartButton:hover {
+            background: #555;
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+<button id="restartButton" onclick="restartGame()">Restart</button>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    const restartButton = document.getElementById('restartButton');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    let player = {
+        x: canvas.width / 2,
+        y: canvas.height - 30,
+        width: 50,
+        height: 50,
+        speed: 10
+    };
+
+    let blocks = [];
+    let blockSpeed = 3;
+    let gameOver = false;
+
+    function createBlock() {
+        const blockWidth = Math.random() * 50 + 30; // Random width between 30 and 80
+        const blockHeight = Math.random() * 20 + 20; // Random height between 20 and 50
+        const xPosition = Math.random() * (canvas.width - blockWidth);
+        blocks.push({ x: xPosition, y: -blockHeight, width: blockWidth, height: blockHeight });
+    }
+
+    function drawPlayer() {
+        ctx.fillStyle = 'white';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+    }
+
+    function drawBlocks() {
+        ctx.fillStyle = 'red';
+        blocks.forEach(block => {
+            ctx.fillRect(block.x, block.y, block.width, block.height);
+        });
+    }
+
+    function moveBlocks() {
+        blocks.forEach(block => {
+            block.y += blockSpeed;
+        });
+    }
+
+    function detectCollision() {
+        for (let i = 0; i < blocks.length; i++) {
+            let block = blocks[i];
+            if (player.x < block.x + block.width &&
+                player.x + player.width > block.x &&
+                player.y < block.y + block.height &&
+                player.y + player.height > block.y) {
+                gameOver = true;
+                restartButton.style.display = 'block'; // Show Restart button
+            }
+        }
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        drawPlayer();
+        drawBlocks();
+        moveBlocks();
+        detectCollision();
+
+        if (!gameOver) {
+            requestAnimationFrame(draw);
+        }
+    }
+
+    function restartGame() {
+        player.x = canvas.width / 2;
+        player.y = canvas.height - 30;
+        blocks = [];
+        blockSpeed = 3;
+        gameOver = false;
+        restartButton.style.display = 'none'; // Hide Restart button
+        draw(); // Start the game again
+    }
+
+    function movePlayer(e) {
+        if (e.key === 'ArrowLeft' && player.x > 0) {
+            player.x -= player.speed;
+        } else if (e.key === 'ArrowRight' && player.x < canvas.width - player.width) {
+            player.x += player.speed;
+        }
+    }
+
+    document.addEventListener('keydown', movePlayer);
+
+    setInterval(createBlock, 1000); // Create a new block every second
+    draw(); // Start the game loop
+</script>
+
+</body>
+</html>
